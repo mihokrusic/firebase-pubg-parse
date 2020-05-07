@@ -54,12 +54,10 @@ exports.parseDiscord = functions.pubsub.schedule(cronEveryMinute).onRun(async (c
 
     // TODO: save match.ids to db
     // TODO: send message with matches to discord bot
-    console.log(matchesToReport);
-    console.log(matchesToReport.length);
 
     const end = new Date();
     console.log('');
-    console.log('All is well');
+    console.log(`Finished parsing PUBG API, found ${matchesToReport.length} matches for reporting.`);
     console.log(`Duration: ${(end.getTime() - start.getTime()) / 1000}s`);
 
     return true;
