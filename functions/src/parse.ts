@@ -2,7 +2,7 @@ import * as functions from 'firebase-functions';
 import { Player, Match, Roster, Participant, MatchSummary, MatchParticipant } from './types';
 import { mapMappings, modeMappings } from './mappings';
 import axios from 'axios';
-import { checkIfLogged } from './mongo';
+import { findMatches } from './mongo';
 
 const pubgApiPlayersUrl = 'https://api.pubg.com/shards/steam/players';
 const pubgApiMatchesUrl = 'https://api.pubg.com/shards/steam/matches';
@@ -46,9 +46,11 @@ export const parsePlayer = async (playerData: Player, matchesLoggedInThisInvocat
     let newMatches = 0;
     const newMatchSummaries = [];
 
+    const matchIds = playerMatches.map((pm) => pm.id);
+    const existingMatches = await findMatches({ pubgId: { $in: matchIds } });
+
     for (const match of playerMatches) {
-        const alreadyLoggedInDb = await checkIfLogged(match.id);
-        if (alreadyLoggedInDb) {
+        if (existingMatches.some((em: any) => em.pubgId === match.id)) {
             loggedMatches++;
             continue;
         }

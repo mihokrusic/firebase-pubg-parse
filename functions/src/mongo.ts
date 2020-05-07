@@ -31,10 +31,8 @@ export async function isEmpty() {
     return !Match.exists({});
 }
 
-export async function checkIfLogged(matchId: string) {
-    const result = await Match.findOne({ pubgId: matchId }).exec();
-
-    return result !== null;
+export async function findMatches(filter: any) {
+    return await Match.find(filter).exec();
 }
 
 export async function insertMatches(matches: { pubgId: string }[]) {

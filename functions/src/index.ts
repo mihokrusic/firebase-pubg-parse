@@ -13,9 +13,9 @@ const cronEveryMinute = '*/1 * * * *';
 const saveMatchesToDb = true;
 const sendMatchesToDiscord = true;
 
-exports.parseDiscord = functions.pubsub.schedule(cronEveryMinute).onRun(async (context) => {
+exports.parsePubgApi = functions.pubsub.schedule(cronEveryMinute).onRun(async (context) => {
     const start = new Date();
-    console.log('\nParse Discord function called.', new Date().toISOString());
+    console.log('\nParse Pubg API function called.', new Date().toISOString());
 
     const configMongoUrl = process.env.MONGO_URL || functions.config().mongo.connection_string;
     const playersToParse = process.env.PLAYERS || 'cobaltic,Tomba_HR,TombaHR,philar_'; // TODO: move to db
