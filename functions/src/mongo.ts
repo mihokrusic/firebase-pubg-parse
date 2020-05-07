@@ -8,7 +8,7 @@ const options = {
     connectTimeoutMS: 5000, // not working for now when useUnifiedTopology = true
 };
 
-const connect = (url: string) => mongoose.connect(url, options);
+export const connect = (url: string) => mongoose.connect(url, options);
 
 // Model
 const matchSchema = new mongoose.Schema(
@@ -27,24 +27,17 @@ matchSchema.index({ pubgId: 1 }, { unique: true });
 const Match = mongoose.model('match', matchSchema);
 
 // Service functions
-async function isEmpty() {
+export async function isEmpty() {
     return !Match.exists({});
 }
 
-async function checkIfLogged(matchId: string) {
+export async function checkIfLogged(matchId: string) {
     const result = await Match.findOne({ pubgId: matchId }).exec();
 
     return result !== null;
 }
 
-async function insertMatches(matches: string[]) {
+export async function insertMatches(matches: { pubgId: string }[]) {
     const result = await Match.insertMany(matches, { ordered: false });
     return result;
 }
-
-module.exports = {
-    connect: connect,
-    isEmpty: isEmpty,
-    checkIfLogged: checkIfLogged,
-    insertMatches: insertMatches,
-};

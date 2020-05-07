@@ -1,7 +1,7 @@
 import * as functions from 'firebase-functions';
 import { MatchSummary } from './types';
-const { connect, isEmpty: dbIsEmpty, insertMatches } = require('./mongo');
-const { parsePlayers, parsePlayer } = require('./parse');
+import { connect, isEmpty, insertMatches } from './mongo';
+import { parsePlayers, parsePlayer } from './parse';
 const { PubSub } = require('@google-cloud/pubsub');
 
 const pubSubClient = new PubSub({ projectId: process.env.GCLOUD_PROJECTID || functions.config().google.project_id });
@@ -9,6 +9,9 @@ const topicName = process.env.GCLOUD_TOPIC_NAME || functions.config().google.top
 const topic = pubSubClient.topic(topicName);
 
 const cronEveryMinute = '*/1 * * * *';
+
+const saveMatchesToDb = true;
+const sendMatchesToDiscord = true;
 
 exports.parseDiscord = functions.pubsub.schedule(cronEveryMinute).onRun(async (context) => {
     const start = new Date();
@@ -26,7 +29,7 @@ exports.parseDiscord = functions.pubsub.schedule(cronEveryMinute).onRun(async (c
         return;
     }
 
-    const isInitialRun = await dbIsEmpty();
+    const isInitialRun = await isEmpty();
     console.log('Starting PUBG api parse, initial run: ' + isInitialRun);
 
     const playersData = await parsePlayers(playersToParse);
@@ -35,15 +38,18 @@ exports.parseDiscord = functions.pubsub.schedule(cronEveryMinute).onRun(async (c
     }
 
     // Parse all players
-    const matchesLoggedInThisInvocation: string[] = [];
+    const matchesLoggedInThisInvocation: { pubgId: string }[] = [];
     const newMatches: MatchSummary[] = [];
     for (const player of playersData) {
-        newMatches.push(...(await parsePlayer(player, matchesLoggedInThisInvocation)));
+        const playerResult = await parsePlayer(player, matchesLoggedInThisInvocation);
+        newMatches.push(...playerResult);
     }
 
     // Save matches to Db so we don't parse them again
-    if (matchesLoggedInThisInvocation.length > 0) {
-        await insertMatches(matchesLoggedInThisInvocation);
+    if (saveMatchesToDb) {
+        if (matchesLoggedInThisInvocation.length > 0) {
+            await insertMatches(matchesLoggedInThisInvocation);
+        }
     }
 
     // TODO: we should be reading rules from db per channel
@@ -52,18 +58,16 @@ exports.parseDiscord = functions.pubsub.schedule(cronEveryMinute).onRun(async (c
     // Dont send notifications if game mode is TDM since we're always first or second
     // Dont send notifications from training map (Camp Jackal)
     const matchesToReport = newMatches.filter(
-        (m) =>
-            !isInitialRun &&
-            m.rank <= 3 && // TODO: move to db
-            m.gameMode !== 'Team Deathmatch' &&
-            m.mapName !== 'Camp Jackal'
+        (m) => !isInitialRun && m.rank <= 3 && m.gameMode !== 'Team Deathmatch' && m.mapName !== 'Camp Jackal'
     );
 
     // Send matches to Discord bot
-    matchesToReport.forEach(async (match) => {
-        const result = await topic.publishJSON(match);
-        console.log(result);
-    });
+    if (sendMatchesToDiscord) {
+        matchesToReport.forEach(async (match) => {
+            const result = await topic.publishJSON(match);
+            console.log(result);
+        });
+    }
 
     const end = new Date();
     console.log('');

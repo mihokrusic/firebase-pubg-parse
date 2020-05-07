@@ -1,13 +1,13 @@
 import * as functions from 'firebase-functions';
 import { Player, Match, Roster, Participant, MatchSummary } from './types';
 import { mapMappings, modeMappings } from './mappings';
-const axios = require('axios');
-const { checkIfLogged: dbCheckIfLogged } = require('./mongo');
+import axios from 'axios';
+import { checkIfLogged } from './mongo';
 
 const pubgApiPlayersUrl = 'https://api.pubg.com/shards/steam/players';
 const pubgApiMatchesUrl = 'https://api.pubg.com/shards/steam/matches';
 
-const parsePlayers = async (playersToParse: string) => {
+export const parsePlayers = async (playersToParse: string) => {
     const configPubgApiKey = process.env.PUBG_API_KEY || functions.config().pubg.api_key;
 
     const headers = {
@@ -28,7 +28,7 @@ const parsePlayers = async (playersToParse: string) => {
     return playersResponse.data.data;
 };
 
-const parsePlayer = async (playerData: Player, matchesLoggedInThisInvocation: string[]) => {
+export const parsePlayer = async (playerData: Player, matchesLoggedInThisInvocation: { pubgId: string }[]) => {
     const configPubgApiKey = process.env.PUBG_API_KEY || functions.config().pubg.api_key;
 
     const headers = {
@@ -47,7 +47,7 @@ const parsePlayer = async (playerData: Player, matchesLoggedInThisInvocation: st
     const newMatchSummaries = [];
 
     for (const match of playerMatches) {
-        const alreadyLoggedInDb = await dbCheckIfLogged(match.id);
+        const alreadyLoggedInDb = await checkIfLogged(match.id);
         if (alreadyLoggedInDb) {
             loggedMatches++;
             continue;
@@ -55,14 +55,14 @@ const parsePlayer = async (playerData: Player, matchesLoggedInThisInvocation: st
 
         newMatches++;
 
-        if (matchesLoggedInThisInvocation.indexOf(match.id) > -1) {
+        if (matchesLoggedInThisInvocation.some((m) => m.pubgId === match.id)) {
             continue;
         }
 
         const matchResponse = await axios.get(`${pubgApiMatchesUrl}/${match.id}`, { headers });
         if (matchResponse.status !== 200) {
             console.log(`Error occurred when checking match ${match.id} status.`);
-            return;
+            return [];
         }
 
         const matchData = matchResponse.data as Match;
@@ -70,7 +70,7 @@ const parsePlayer = async (playerData: Player, matchesLoggedInThisInvocation: st
         const participant = matchData.included.find((p) => p.type === 'participant' && p.attributes.stats.playerId === playerData.id);
         if (!participant) {
             console.log(`Error occurred when trying to find player as a participant in ${match.id} match. This is an error on PUBG side.`);
-            return;
+            return [];
         }
 
         const roster = matchData.included.find(
@@ -78,7 +78,7 @@ const parsePlayer = async (playerData: Player, matchesLoggedInThisInvocation: st
         ) as Roster;
         if (!roster) {
             console.log(`Error occurred when trying to find player's roster in ${match.id} match. This is an error on PUBG side.`);
-            return;
+            return [];
         }
 
         const matchParticipants = getMatchParticipants(matchData, roster);
@@ -86,7 +86,7 @@ const parsePlayer = async (playerData: Player, matchesLoggedInThisInvocation: st
         matchSummary.participants.push(...matchParticipants);
         newMatchSummaries.push(matchSummary);
 
-        matchesLoggedInThisInvocation.push(match.id);
+        matchesLoggedInThisInvocation.push({ pubgId: match.id });
     }
 
     console.log(`Of those matches, ${newMatches} are new. Skipping ${loggedMatches} already logged matches.`);
@@ -122,9 +122,4 @@ const getMatchSummary = (matchInfo: Match, roster: Roster): MatchSummary => {
         mapName: mapMappings[matchInfo.data.attributes.mapName],
         participants: [],
     };
-};
-
-module.exports = {
-    parsePlayers,
-    parsePlayer,
 };
