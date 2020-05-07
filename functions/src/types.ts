@@ -1,21 +1,26 @@
-// Internal type, not related to PUBG API
+// Internal types, not related to PUBG API
+
+export interface MatchParticipant {
+    name: string;
+    playerId: string;
+    kills: number;
+    headshotKills: number;
+    assists: number;
+    damageDealt: number;
+    longestKill: number;
+}
+
 export interface MatchSummary {
     rank: number;
     duration: number;
     gameMode: string;
     createdAt: string;
     mapName: string;
-    participants: {
-        name: string;
-        playerId: string;
-        kills: number;
-        headshotKills: number;
-        assists: number;
-        damageDealt: number;
-        longestKill: number;
-    }[];
+    participants: MatchParticipant[];
+    totalKills: number;
 }
 
+// PUBG API types
 export type GameMode =
     | 'duo'
     | 'duo-fpp'

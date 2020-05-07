@@ -1,5 +1,5 @@
 import * as functions from 'firebase-functions';
-import { Player, Match, Roster, Participant, MatchSummary } from './types';
+import { Player, Match, Roster, Participant, MatchSummary, MatchParticipant } from './types';
 import { mapMappings, modeMappings } from './mappings';
 import axios from 'axios';
 import { checkIfLogged } from './mongo';
@@ -82,8 +82,7 @@ export const parsePlayer = async (playerData: Player, matchesLoggedInThisInvocat
         }
 
         const matchParticipants = getMatchParticipants(matchData, roster);
-        const matchSummary = getMatchSummary(matchData, roster);
-        matchSummary.participants.push(...matchParticipants);
+        const matchSummary = getMatchSummary(matchData, roster, matchParticipants);
         newMatchSummaries.push(matchSummary);
 
         matchesLoggedInThisInvocation.push({ pubgId: match.id });
@@ -113,13 +112,14 @@ const getMatchParticipants = (matchInfo: Match, roster: Roster) => {
     return matchParticipants;
 };
 
-const getMatchSummary = (matchInfo: Match, roster: Roster): MatchSummary => {
+const getMatchSummary = (matchInfo: Match, roster: Roster, participants: MatchParticipant[]): MatchSummary => {
     return {
         rank: roster.attributes.stats.rank,
         duration: matchInfo.data.attributes.duration,
         gameMode: modeMappings[matchInfo.data.attributes.gameMode],
         createdAt: matchInfo.data.attributes.createdAt,
         mapName: mapMappings[matchInfo.data.attributes.mapName],
-        participants: [],
+        participants: participants,
+        totalKills: participants.reduce((acc, curr) => acc + curr.kills, 0),
     };
 };
