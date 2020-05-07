@@ -114,6 +114,7 @@ const getMatchParticipants = (matchInfo: Match, roster: Roster) => {
 
 const getMatchSummary = (matchInfo: Match, roster: Roster, participants: MatchParticipant[]): MatchSummary => {
     return {
+        id: matchInfo.data.id,
         rank: roster.attributes.stats.rank,
         duration: matchInfo.data.attributes.duration,
         gameMode: modeMappings[matchInfo.data.attributes.gameMode],

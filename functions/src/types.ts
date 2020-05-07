@@ -11,6 +11,7 @@ export interface MatchParticipant {
 }
 
 export interface MatchSummary {
+    id: string;
     rank: number;
     duration: number;
     gameMode: string;
