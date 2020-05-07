@@ -50,7 +50,7 @@ const parsePlayer = async (playerData: Player, matchesLoggedInThisInvocation: st
         const alreadyLoggedInDb = await dbCheckIfLogged(match.id);
         if (alreadyLoggedInDb) {
             loggedMatches++;
-            // TODO: continue;
+            continue;
         }
 
         newMatches++;

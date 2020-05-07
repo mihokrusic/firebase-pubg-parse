@@ -37,8 +37,14 @@ async function checkIfLogged(matchId: string) {
     return result !== null;
 }
 
+async function insertMatches(matches: string[]) {
+    const result = await Match.insertMany(matches, { ordered: false });
+    return result;
+}
+
 module.exports = {
     connect: connect,
     isEmpty: isEmpty,
     checkIfLogged: checkIfLogged,
+    insertMatches: insertMatches,
 };
