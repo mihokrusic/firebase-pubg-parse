@@ -19,6 +19,7 @@ export interface MatchSummary {
     mapName: string;
     participants: MatchParticipant[];
     totalKills: number;
+    mapEventsImage?: string;
 }
 
 // PUBG API types

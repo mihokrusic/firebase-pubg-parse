@@ -1,5 +1,5 @@
 import * as functions from 'firebase-functions';
-import { Player, Match, Roster, Participant, MatchSummary, MatchParticipant } from './types';
+import { Player, Match, Roster, Participant, MatchSummary, MatchParticipant } from './../types';
 import { mapMappings, modeMappings } from './mappings';
 import axios from 'axios';
 import { findMatches } from './mongo';
