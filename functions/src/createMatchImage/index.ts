@@ -18,6 +18,12 @@ module.exports = functions.pubsub.topic('pubg-matches-to-report').onPublish((mes
     const start = new Date();
     console.log(`\nGenerating image for match: ${matchSummary.id}`);
 
+    // TODO: support others also
+    if (matchSummary.mapName !== 'Karakin') {
+        console.log(`Skipping, only supports Karakin for now. Got ${matchSummary.mapName} in match summary.`);
+        return;
+    }
+
     async function doStuff() {
         // First get telemetry data
         const { valid, positions, landingArray, kills, deaths } = await getTelemetryData(matchSummary);
