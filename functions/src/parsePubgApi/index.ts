@@ -76,12 +76,10 @@ module.exports = functions.pubsub.schedule(cronEveryMinute).onRun(async (context
     // Send matches to Discord bot
     if (sendMatchesToDiscord) {
         matchesToReport.forEach(async (match) => {
-            const result = await topic.publishJSON(match);
-            console.log(result);
+            await topic.publishJSON(match);
+            await matchesToReportTopic.publishJSON(matchesToReport[0]);
         });
     }
-
-    await matchesToReportTopic.publishJSON({});
 
     const end = new Date();
     console.log('');
