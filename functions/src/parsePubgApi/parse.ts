@@ -1,5 +1,5 @@
 import * as functions from 'firebase-functions';
-import { Player, Match, Roster, Participant, MatchSummary, MatchParticipant } from './../types';
+import { Player, Match, Roster, Participant, MatchSummary, MatchParticipant, Asset } from './../types';
 import { mapMappings, modeMappings } from './mappings';
 import axios from 'axios';
 import { findMatches } from './mongo';
@@ -85,6 +85,12 @@ export const parsePlayer = async (playerData: Player, matchesLoggedInThisInvocat
 
         const matchParticipants = getMatchParticipants(matchData, roster);
         const matchSummary = getMatchSummary(matchData, roster, matchParticipants);
+
+        const telemetryAssetId = matchData.data.relationships.assets.data[0].id;
+        const telemetryJsonUrl = (matchData.included.find((inc) => inc.type === 'asset' && inc.id === telemetryAssetId) as Asset).attributes
+            .URL;
+        matchSummary.mapEventsJsonUrl = telemetryJsonUrl;
+
         newMatchSummaries.push(matchSummary);
 
         matchesLoggedInThisInvocation.push({ pubgId: match.id });

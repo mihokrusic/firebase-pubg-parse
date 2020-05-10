@@ -2,50 +2,65 @@ import * as functions from 'firebase-functions';
 import { Storage } from '@google-cloud/storage';
 import * as path from 'path';
 import * as fs from 'fs';
-import { createCanvas } from 'canvas';
+import * as os from 'os';
+import * as util from 'util';
+import { generateImage } from './generateImage';
+import { getTelemetryData } from './getTelemetryData';
+import { MatchSummary } from '../types';
 
-const storage = new Storage();
 const BUCKET_NAME = 'discord-pubg-bot-map-event-images-bucket';
-
-const generateImage = (fileName: string) => {
-    const canvas = createCanvas(150, 150);
-    const ctx = canvas.getContext('2d');
-
-    ctx.fillStyle = 'red';
-    ctx.beginPath();
-    ctx.rect(0, 0, 150, 150);
-    ctx.fill();
-
-    ctx.fillStyle = 'blue';
-    ctx.beginPath();
-    ctx.rect(50, 50, 50, 50);
-    ctx.fill();
-
-    return new Promise((resolve, reject) => {
-        const out = fs.createWriteStream(fileName);
-        const stream = canvas.createPNGStream();
-        stream.pipe(out);
-        out.on('finish', () => resolve());
-    });
-};
+const storage = new Storage();
+const bucket = storage.bucket(BUCKET_NAME);
 
 module.exports = functions.pubsub.topic('pubg-matches-to-report').onPublish((message, context) => {
-    async function generateAndUploadMatchImage() {
-        await generateImage(fileName);
+    const matchSummary = message.json as MatchSummary;
 
-        await storage.bucket(BUCKET_NAME).upload(fileName, {
-            gzip: true,
-            metadata: {
-                cacheControl: 'public, max-age=31536000',
-            },
-        });
+    const start = new Date();
+    console.log(`\nGenerating image for match: ${matchSummary.id}`);
+
+    async function doStuff() {
+        // First get telemetry data
+        const { valid, positions, landingArray, kills, deaths } = await getTelemetryData(matchSummary);
+        if (!valid) {
+            // TODO: what in this case?
+            return;
+        }
+
+        // Generate and save temporary image
+        await generateImage(fileName, positions, landingArray, kills, deaths);
+
+        // Upload image
+        try {
+            console.log('Uploading image...');
+            await bucket.upload(fileName, {
+                gzip: true,
+                metadata: {
+                    cacheControl: 'public, max-age=31536000',
+                },
+            });
+            console.log('Uploaded.');
+        } catch (e) {
+            console.log('Error when uploading image.');
+            console.log(e);
+        }
+
+        // Delete temporary image
+        const unlink = util.promisify(fs.unlink);
+        try {
+            console.log('Deleting tmp file...');
+            await unlink(fileName);
+            console.log('Deleted.');
+        } catch (e) {
+            console.log('Error when deleting tmp file.');
+            console.log(e);
+        }
     }
 
-    const fileName = path.join(__dirname, 'tmp', 'test.png');
+    const fileName = path.join(os.tmpdir(), `${matchSummary.id}.png`);
 
-    generateAndUploadMatchImage();
-
-    return true;
+    return doStuff().then((_) => {
+        const end = new Date();
+        console.log('');
+        console.log(`Finished generating image. Duration: ${(end.getTime() - start.getTime()) / 1000}s`);
+    });
 });
-
-// Creates a client

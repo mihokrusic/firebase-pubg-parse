@@ -7,7 +7,7 @@ const { PubSub } = require('@google-cloud/pubsub');
 const pubSubClient = new PubSub({ projectId: process.env.GCLOUD_PROJECTID || functions.config().google.project_id });
 const topicName = process.env.GCLOUD_TOPIC_NAME || functions.config().google.topic_name;
 const topic = pubSubClient.topic(topicName);
-const matchesToReportTopic = pubSubClient.topic('pubg-matches-to-report');
+const matchesToReportTopic = pubSubClient.topic('pubg-matches-to-report'); // TODO: add to env
 
 const cronEveryMinute = '*/1 * * * *';
 
@@ -63,24 +63,13 @@ module.exports = functions.pubsub.schedule(cronEveryMinute).onRun(async (context
         (m) => !isInitialRun && m.rank <= 3 && m.gameMode !== 'Team Deathmatch' && m.mapName !== 'Camp Jackal'
     );
 
-    // Go through matches to report and create map event images and tie them to the match summary
-    // TODO: currently supported only for Karakin
-    matchesToReport.forEach((match) => {
-        // create and upload image to bucket
-        // get image url
-        const imageUrl = '';
-
-        match.mapEventsImage = imageUrl;
-    });
-
     // Send matches to Discord bot
     if (sendMatchesToDiscord) {
         matchesToReport.forEach(async (match) => {
             await topic.publishJSON(match);
-            await matchesToReportTopic.publishJSON(matchesToReport[0]);
+            await matchesToReportTopic.publishJSON(match);
         });
     }
-
     const end = new Date();
     console.log('');
     console.log(`Finished parsing PUBG API, found ${matchesToReport.length} matches for reporting.`);
