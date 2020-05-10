@@ -138,6 +138,14 @@ export interface Roster {
     };
 }
 
+export interface Asset {
+    type: 'asset';
+    id: string;
+    attributes: {
+        URL: string;
+    };
+}
+
 export interface Match {
     data: {
         id: string;
@@ -156,6 +164,15 @@ export interface Match {
             stats: any[];
             titleId: string;
         };
+        relationships: {
+            rosters: {};
+            assets: {
+                data: {
+                    type: 'asset';
+                    id: string;
+                }[];
+            };
+        };
     };
-    included: (Participant | Roster)[];
+    included: (Participant | Roster | Asset)[];
 }
