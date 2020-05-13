@@ -6,15 +6,15 @@ import { insertMatches, hasMatches, MatchDocument } from './mongo/match.model';
 import { findChannels } from './mongo/channel.model';
 const { PubSub } = require('@google-cloud/pubsub');
 
-const pubSubClient = new PubSub({ projectId: process.env.GCLOUD_PROJECTID || functions.config().google.project_id });
-const topicName = process.env.GCLOUD_TOPIC_NAME || functions.config().google.topic_name;
+const pubSubClient = new PubSub({ projectId: functions.config().google.project_id });
+const topicName = functions.config().google.topic_name;
 const topic = pubSubClient.topic(topicName);
 const matchesToReportTopic = pubSubClient.topic('pubg-matches-to-report'); // TODO: add to env
 
 const cronEveryMinute = '*/1 * * * *';
 
 const saveMatchesToDb = true;
-const overrideDiscordFlag = true;
+const overrideDiscordFlag = functions.config().general.enviroment !== 'production';
 
 const runOptions = {
     timeoutSeconds: 120,
@@ -28,7 +28,7 @@ module.exports = functions
         console.log('\n* Parse Pubg API function called.', new Date().toISOString());
 
         try {
-            const configMongoUrl = process.env.MONGO_URL || functions.config().mongo.connection_string;
+            const configMongoUrl = functions.config().mongo.connection_string;
             await connect(configMongoUrl);
             console.log('* Connected to MongoDb successfully.');
         } catch (e) {

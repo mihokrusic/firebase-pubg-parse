@@ -4,8 +4,9 @@
         "lint": "tslint --project tsconfig.json",
         "build": "tsc",
         "watch": "tsc -w",
-        "serve": "firebase functions:config:get > .runtimeconfig.json && npm run build && firebase emulators:start --only functions",
-        "shell": "firebase functions:config:get > .runtimeconfig.json && npm run build && firebase functions:shell",
+        "serve": "npm run build && firebase emulators:start --only functions",
+        "shell": "npm run build && firebase functions:shell",
+        "config": "firebase functions:config:get > .runtimeconfig.json",
         "start": "npm run shell",
         "deploy": "firebase deploy --only functions",
         "logs": "firebase functions:log"
