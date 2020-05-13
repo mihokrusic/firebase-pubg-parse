@@ -14,7 +14,7 @@ const matchesToReportTopic = pubSubClient.topic('pubg-matches-to-report'); // TO
 const cronEveryMinute = '*/1 * * * *';
 
 const saveMatchesToDb = true;
-const overrideDiscordFlag = functions.config().general.enviroment !== 'production';
+const overrideDiscordFlag = functions.config().general.environment !== 'production';
 
 const runOptions = {
     timeoutSeconds: 120,
