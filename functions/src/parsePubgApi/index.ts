@@ -1,7 +1,9 @@
 import * as functions from 'firebase-functions';
 import { MatchSummary } from './../types';
-import { connect, isEmpty, insertMatches } from './mongo';
 import { parsePlayers, parsePlayer } from './parse';
+import { connect } from './mongo/_db';
+import { insertMatches, hasMatches, MatchDocument } from './mongo/match.model';
+import { findChannels } from './mongo/channel.model';
 const { PubSub } = require('@google-cloud/pubsub');
 
 const pubSubClient = new PubSub({ projectId: process.env.GCLOUD_PROJECTID || functions.config().google.project_id });
@@ -12,68 +14,86 @@ const matchesToReportTopic = pubSubClient.topic('pubg-matches-to-report'); // TO
 const cronEveryMinute = '*/1 * * * *';
 
 const saveMatchesToDb = true;
-const sendMatchesToDiscord = true;
+const overrideDiscordFlag = true;
 
-module.exports = functions.pubsub.schedule(cronEveryMinute).onRun(async (context) => {
-    const start = new Date();
-    console.log('\nParse Pubg API function called.', new Date().toISOString());
+const runOptions = {
+    timeoutSeconds: 120,
+};
 
-    const configMongoUrl = process.env.MONGO_URL || functions.config().mongo.connection_string;
-    // TODO: read players from db
-    const playersToParse = process.env.PLAYERS || 'cobaltic,Tomba_HR,TombaHR,philar_';
+module.exports = functions
+    .runWith(runOptions)
+    .pubsub.schedule(cronEveryMinute)
+    .onRun(async (context) => {
+        const start = new Date();
+        console.log('\n* Parse Pubg API function called.', new Date().toISOString());
 
-    try {
-        await connect(configMongoUrl);
-        console.log('Connected to MongoDb successfully.');
-    } catch (e) {
-        console.log('Error connecting to MongoDb.');
-        console.log(e);
-        return;
-    }
-
-    const isInitialRun = await isEmpty();
-    console.log('Starting PUBG api parse, initial run: ' + isInitialRun);
-
-    const playersData = await parsePlayers(playersToParse);
-    if (!playersData) {
-        return;
-    }
-
-    // Parse all players
-    const matchesLoggedInThisInvocation: { pubgId: string }[] = [];
-    const newMatches: MatchSummary[] = [];
-    for (const player of playersData) {
-        const playerResult = await parsePlayer(player, matchesLoggedInThisInvocation);
-        newMatches.push(...playerResult);
-    }
-
-    // Save matches to Db so we don't parse them again
-    if (saveMatchesToDb) {
-        if (matchesLoggedInThisInvocation.length > 0) {
-            await insertMatches(matchesLoggedInThisInvocation);
+        try {
+            const configMongoUrl = process.env.MONGO_URL || functions.config().mongo.connection_string;
+            await connect(configMongoUrl);
+            console.log('* Connected to MongoDb successfully.');
+        } catch (e) {
+            console.error('* Error connecting to MongoDb.');
+            console.error(e);
+            return;
         }
-    }
 
-    // TODO: we should be reading rules from db per channel
-    // Dont send notifications on initial run since we have data for last 14 days to parse.
-    // Dont send notifications if we finished poorly
-    // Dont send notifications if game mode is TDM since we're always first or second
-    // Dont send notifications from training map (Camp Jackal)
-    const matchesToReport = newMatches.filter(
-        (m) => !isInitialRun && m.rank <= 3 && m.gameMode !== 'Team Deathmatch' && m.mapName !== 'Camp Jackal'
-    );
+        const channels = await findChannels();
+        if (channels.length === 0) {
+            console.error('* No channels entered in db.');
+            return;
+        }
 
-    // Send matches to Discord bot
-    if (sendMatchesToDiscord) {
-        matchesToReport.forEach(async (match) => {
-            await topic.publishJSON(match);
-            await matchesToReportTopic.publishJSON(match);
-        });
-    }
-    const end = new Date();
-    console.log('');
-    console.log(`Finished parsing PUBG API, found ${matchesToReport.length} matches for reporting.`);
-    console.log(`Duration: ${(end.getTime() - start.getTime()) / 1000}s`);
+        for (const channel of channels) {
+            console.log(`\nParsing ${channel.name} (${channel.channelId}) channel, players: ${channel.players}`);
 
-    return true;
-});
+            const channelHasLoggedMatches = await hasMatches(channel.channelId);
+            console.log('Starting PUBG api parse, initial run: ' + !channelHasLoggedMatches);
+
+            const playersData = await parsePlayers(channel.players);
+            if (!playersData) {
+                return;
+            }
+
+            // Parse players in channel, but no need to parse same match multiple times if they played duo/squad
+            const matchesLoggedInThisInvocation: MatchDocument[] = [];
+            const newMatches: MatchSummary[] = [];
+            for (const player of playersData) {
+                const playerResult = await parsePlayer(channel.channelId, player, matchesLoggedInThisInvocation);
+                newMatches.push(...playerResult);
+            }
+
+            // Save matches to Db so we don't parse them again
+            if (saveMatchesToDb) {
+                if (matchesLoggedInThisInvocation.length > 0) {
+                    await insertMatches(matchesLoggedInThisInvocation);
+                }
+            }
+
+            // TODO: we should be reading rules from db per channel
+            // Dont send notifications on initial run since we have data for last 14 days to parse.
+            // Dont send notifications if we finished poorly
+            // Dont send notifications if game mode is TDM since we're always first or second
+            // Dont send notifications from training map (Camp Jackal)
+            const matchesToReport = newMatches.filter(
+                (m) =>
+                    channelHasLoggedMatches && m.rank <= channel.minRank && m.gameMode !== 'Team Deathmatch' && m.mapName !== 'Camp Jackal'
+            );
+
+            // Send matches to Discord bot
+            if (channel.sendToDiscord || overrideDiscordFlag) {
+                matchesToReport.forEach(async (match) => {
+                    await topic.publishJSON(match);
+                    await matchesToReportTopic.publishJSON(match);
+                });
+            }
+
+            console.log(`Finished parsing ${channel.name} channel, found ${matchesToReport.length} matches for reporting.`);
+        }
+
+        const end = new Date();
+        console.log('');
+        console.log('Done.');
+        console.log(`Duration: ${(end.getTime() - start.getTime()) / 1000}s`);
+
+        return true;
+    });

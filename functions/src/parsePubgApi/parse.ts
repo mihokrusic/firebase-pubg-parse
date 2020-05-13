@@ -2,7 +2,7 @@ import * as functions from 'firebase-functions';
 import { Player, Match, Roster, Participant, MatchSummary, MatchParticipant, Asset } from './../types';
 import { mapMappings, modeMappings } from './mappings';
 import axios from 'axios';
-import { findMatches } from './mongo';
+import { findMatches, MatchDocument } from './mongo/match.model';
 
 const pubgApiPlayersUrl = 'https://api.pubg.com/shards/steam/players';
 const pubgApiMatchesUrl = 'https://api.pubg.com/shards/steam/matches';
@@ -28,7 +28,7 @@ export const parsePlayers = async (playersToParse: string) => {
     return playersResponse.data.data;
 };
 
-export const parsePlayer = async (playerData: Player, matchesLoggedInThisInvocation: { pubgId: string }[]) => {
+export const parsePlayer = async (channelId: string, playerData: Player, matchesLoggedInThisInvocation: MatchDocument[]) => {
     const configPubgApiKey = process.env.PUBG_API_KEY || functions.config().pubg.api_key;
 
     const headers = {
@@ -39,25 +39,24 @@ export const parsePlayer = async (playerData: Player, matchesLoggedInThisInvocat
     const playerMatches = playerData.relationships.matches.data;
 
     console.log('');
-    console.log(`Checking player: ${playerData.attributes.name}`);
-    console.log(`Found: ${playerMatches.length} matches`);
+    console.log(`Checking player: ${playerData.attributes.name}, found ${playerMatches.length} matches`);
 
     let loggedMatches = 0;
     let newMatches = 0;
     const newMatchSummaries = [];
 
     const matchIds = playerMatches.map((pm) => pm.id);
-    const existingMatches = await findMatches({ pubgId: { $in: matchIds } });
+    const existingMatches = await findMatches({ channelId: channelId, matchId: { $in: matchIds } });
 
     for (const match of playerMatches) {
-        if (existingMatches.some((em: any) => em.pubgId === match.id)) {
+        if (existingMatches.some((em: any) => em.matchId === match.id)) {
             loggedMatches++;
             continue;
         }
 
         newMatches++;
 
-        if (matchesLoggedInThisInvocation.some((m) => m.pubgId === match.id)) {
+        if (matchesLoggedInThisInvocation.some((m) => m.matchId === match.id)) {
             continue;
         }
 
@@ -90,10 +89,11 @@ export const parsePlayer = async (playerData: Player, matchesLoggedInThisInvocat
         const telemetryJsonUrl = (matchData.included.find((inc) => inc.type === 'asset' && inc.id === telemetryAssetId) as Asset).attributes
             .URL;
         matchSummary.mapEventsJsonUrl = telemetryJsonUrl;
+        matchSummary.channelId = channelId;
 
         newMatchSummaries.push(matchSummary);
 
-        matchesLoggedInThisInvocation.push({ pubgId: match.id });
+        matchesLoggedInThisInvocation.push({ channelId: channelId, matchId: match.id, data: matchSummary as Object } as MatchDocument);
     }
 
     console.log(`Of those matches, ${newMatches} are new. Skipping ${loggedMatches} already logged matches.`);

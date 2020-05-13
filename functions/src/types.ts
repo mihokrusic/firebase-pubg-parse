@@ -12,6 +12,7 @@ export interface MatchParticipant {
 
 export interface MatchSummary {
     id: string;
+    channelId?: string;
     rank: number;
     duration: number;
     gameMode: string;
