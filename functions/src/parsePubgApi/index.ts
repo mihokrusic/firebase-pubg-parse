@@ -1,9 +1,9 @@
 import * as functions from 'firebase-functions';
 import { MatchSummary } from './../types';
 import { parsePlayers, parsePlayer } from './parse';
-import { connect } from './mongo/_db';
-import { insertMatches, hasMatches, MatchDocument } from './mongo/match.model';
-import { findChannels } from './mongo/channel.model';
+import { connect } from '../_mongo/_db';
+import { insertMatches, hasMatches, MatchDocument } from '../_mongo/match.model';
+import { findChannels } from '../_mongo/channel.model';
 const { PubSub } = require('@google-cloud/pubsub');
 
 const pubSubClient = new PubSub({ projectId: functions.config().google.project_id });
@@ -82,7 +82,7 @@ module.exports = functions
             // Send matches to Discord bot
             if (channel.sendToDiscord || overrideDiscordFlag) {
                 matchesToReport.forEach(async (match) => {
-                    await topic.publishJSON(match);
+                    await topic.publishJSON({ channelId: match.channelId, id: match.id });
                     await matchesToReportTopic.publishJSON(match);
                 });
             }

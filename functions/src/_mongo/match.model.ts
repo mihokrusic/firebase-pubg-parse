@@ -25,6 +25,10 @@ export async function hasMatches(channelId: string) {
     return await Match.exists({ channelId: channelId });
 }
 
+export async function findMatch(filter: any) {
+    return await Match.findOne(filter).exec();
+}
+
 export async function findMatches(filter: any) {
     return await Match.find(filter).exec();
 }

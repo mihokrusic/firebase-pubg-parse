@@ -20,8 +20,20 @@ export interface MatchSummary {
     mapName: string;
     participants: MatchParticipant[];
     totalKills: number;
-    mapEventsJsonUrl?: string;
-    mapEventsImage?: string;
+    mapEventsJsonUrl: string;
+}
+
+export interface MatchSummaryTopic {
+    id: string;
+    channelId?: string;
+}
+
+export interface MatchTelemetry {
+    valid: boolean;
+    landings?: any[];
+    positions?: any[];
+    kills?: any[];
+    deaths?: any[];
 }
 
 // PUBG API types

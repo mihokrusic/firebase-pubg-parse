@@ -2,7 +2,7 @@ import * as functions from 'firebase-functions';
 import { Player, Match, Roster, Participant, MatchSummary, MatchParticipant, Asset } from './../types';
 import { mapMappings, modeMappings } from './mappings';
 import axios from 'axios';
-import { findMatches, MatchDocument } from './mongo/match.model';
+import { findMatches, MatchDocument } from '../_mongo/match.model';
 
 const pubgApiPlayersUrl = 'https://api.pubg.com/shards/steam/players';
 const pubgApiMatchesUrl = 'https://api.pubg.com/shards/steam/matches';
@@ -130,5 +130,5 @@ const getMatchSummary = (matchInfo: Match, roster: Roster, participants: MatchPa
         mapName: mapMappings[matchInfo.data.attributes.mapName],
         participants: participants,
         totalKills: participants.reduce((acc, curr) => acc + curr.kills, 0),
-    };
+    } as MatchSummary;
 };
