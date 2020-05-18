@@ -7,7 +7,7 @@ const Discord = require('discord.js');
 const client = new Discord.Client();
 
 const topicName = functions.config().google.topic_name;
-const discordBotToken = 'Njc0OTI0ODgxNjQ0NzQ4ODAw.Xj8Nnw.xQJw0IApM_kfXK4gjgqbR4JRyjE';
+const discordBotToken = functions.config().discord.bot_token;
 const discordBotWinnerImg = 'https://img.favpng.com/12/14/12/chicken-drawing-cartoon-sketch-png-favpng-u9y2WVyjHBzUMitUvhtWFBqqj.jpg';
 const discordBotNotAWinnerImg = 'https://i.pinimg.com/originals/c0/e8/65/c0e86501b0a44a361f7e4b468ff92917.jpg';
 
