@@ -64,7 +64,7 @@ module.exports = functions.pubsub.topic('pubg-matches-to-report').onPublish((mes
         }
     }
 
-    const fileName = path.join(os.tmpdir(), `${matchSummary.id}.png`);
+    const fileName = path.join(os.tmpdir(), `${matchSummary.channelId}-${matchSummary.id}.png`);
 
     return doStuff().then((_) => {
         const end = new Date();

@@ -17,9 +17,8 @@ const connect = async () => {
 
 const sendMessage = (matchSummary: MatchSummary) => {
     try {
-        const targetChannel = client.channels.cache.find(
-            (channel: any, key: any, collection: any) => channel.id === matchSummary.channelId
-        );
+        const targetChannel = client.channels.get(matchSummary.channelId);
+
         let title = '';
         if (matchSummary.rank === 1) {
             title = 'WINNER WINNER CHICKEN DINNER!';
@@ -32,8 +31,7 @@ const sendMessage = (matchSummary: MatchSummary) => {
         }
 
         const participants = matchSummary.participants.sort((a, b) => (a.kills < b.kills ? 1 : -1));
-
-        const matchEmbed = new Discord.MessageEmbed()
+        const matchEmbed = new Discord.RichEmbed()
             .setColor('#21FF33')
             .setTitle(title)
             .addField('Place', matchSummary.rank)
@@ -66,7 +64,7 @@ const sendMessage = (matchSummary: MatchSummary) => {
         matchEmbed.addField('Longest Kill', longestKillText);
         matchEmbed.addField('Match ID', `\`${matchSummary.id}\``);
 
-        targetChannel.send(matchEmbed);
+        targetChannel.sendEmbed(matchEmbed);
 
         console.log(`Message sent successfully: ${matchSummary.id}`);
     } catch (e) {
@@ -99,7 +97,7 @@ module.exports = functions.pubsub.topic(topicName).onPublish(async (message, con
         return;
     }
 
-    const messagePayload = JSON.parse(message.data) as MatchSummaryTopic;
+    const messagePayload = message.json as MatchSummaryTopic;
     const matchSummary = await findMatch({ channelId: messagePayload.channelId, matchId: messagePayload.id });
 
     if (matchSummary === null) {

@@ -21,7 +21,7 @@
         "@types/mongoose": "^5.7.19",
         "axios": "^0.19.2",
         "canvas": "^2.6.1",
-        "discord.js": "^12.2.0",
+        "discord.js": "^11.6.4",
         "firebase-admin": "^8.10.0",
         "firebase-functions": "^3.6.1",
         "mongoose": "^5.9.12",
