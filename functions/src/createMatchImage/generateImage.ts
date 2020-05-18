@@ -1,5 +1,6 @@
 import { createCanvas, loadImage } from 'canvas';
 import * as fs from 'fs';
+import { MatchTelemetry, MatchSummary } from '../types';
 
 const IMAGE_DIMS = 2400;
 
@@ -20,6 +21,16 @@ const getMapCoords = (x: number, y: number) => {
     const mapY = Math.round((y / MAP_SIZES.karakin) * IMAGE_DIMS);
 
     return { mapX, mapY };
+};
+
+const drawTitle = (ctx: any, summary: MatchSummary) => {
+    ctx.strokeStyle = 'black';
+    ctx.font = '60px Impact';
+    ctx.lineWidth = 2;
+    ctx.strokeText('WINNER WINNER CHICKEN DINNER!', 30, 80);
+    ctx.fillStyle = 'white';
+    ctx.font = '60px Impact';
+    ctx.fillText('WINNER WINNER CHICKEN DINNER!', 30, 80);
 };
 
 const drawPaths = (ctx: any, positions: any) => {
@@ -82,17 +93,19 @@ const drawDeaths = (ctx: any, deaths: any) => {
     });
 };
 
-export const generateImage = async (filename: string, positions: any, landings: any, kills: any, deaths: any) => {
+export const generateImage = async (filename: string, summary: MatchSummary, telemetry: MatchTelemetry) => {
     const canvas = createCanvas(IMAGE_DIMS, IMAGE_DIMS);
     const ctx = canvas.getContext('2d');
     try {
         const image = await loadImage(MAP_URLS['karakin']);
         ctx.drawImage(image, 0, 0, IMAGE_DIMS, IMAGE_DIMS);
 
-        drawPaths(ctx, positions);
-        drawLandings(ctx, landings);
-        drawKills(ctx, kills);
-        drawDeaths(ctx, deaths);
+        drawTitle(ctx, summary);
+
+        drawPaths(ctx, telemetry.positions);
+        drawLandings(ctx, telemetry.landings);
+        drawKills(ctx, telemetry.kills);
+        drawDeaths(ctx, telemetry.deaths);
     } catch (e) {
         console.log('Error when generating image.');
         console.log(e);

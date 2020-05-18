@@ -1,11 +1,7 @@
-import { MatchSummary } from '../types';
+import { MatchSummary, MatchTelemetry } from '../types';
 import axios from 'axios';
 
 export const getTelemetryData = async (matchSummary: MatchSummary) => {
-    if (!matchSummary.mapEventsJsonUrl) {
-        return { valid: false };
-    }
-
     const headers = {
         Accept: 'application/vnd.api+json',
     };
@@ -13,7 +9,7 @@ export const getTelemetryData = async (matchSummary: MatchSummary) => {
 
     const players = matchSummary.participants.map((p: any) => p.name);
 
-    const landingArray = result.data
+    const landings = result.data
         .filter((d: any) => d['_T'] === 'LogParachuteLanding' && players.indexOf(d.character.name) > -1)
         .map((pl: any) => ({
             id: pl.character.accountId,
@@ -21,7 +17,7 @@ export const getTelemetryData = async (matchSummary: MatchSummary) => {
             location: pl.character.location,
             ['_D']: pl['_D'],
         }));
-    const landingTimes = landingArray.reduce((obj: any, curr: any) => ({ ...obj, [curr.name]: [curr['_D']] }), {});
+    const landingTimes = landings.reduce((obj: any, curr: any) => ({ ...obj, [curr.name]: [curr['_D']] }), {});
 
     const positions = result.data.filter(
         (d: any) =>
@@ -33,10 +29,9 @@ export const getTelemetryData = async (matchSummary: MatchSummary) => {
     const deaths = result.data.filter((d: any) => d['_T'] === 'LogPlayerKill' && d.victim && players.indexOf(d.victim.name) > -1);
 
     return {
-        valid: true,
-        landingArray,
+        landings,
         positions,
         kills,
         deaths,
-    };
+    } as MatchTelemetry;
 };

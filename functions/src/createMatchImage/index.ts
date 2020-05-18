@@ -25,21 +25,23 @@ module.exports = functions.pubsub.topic('pubg-matches-to-report').onPublish((mes
     }
 
     async function doStuff() {
-        // First get telemetry data
-        const { valid, positions, landingArray, kills, deaths } = await getTelemetryData(matchSummary);
-        if (!valid) {
-            // TODO: what in this case?
+        // Skip if we don't have telemetry JSON
+        if (!matchSummary.mapEventsJsonUrl) {
             return;
         }
 
+        // First get telemetry data
+        const telemetry = await getTelemetryData(matchSummary);
+
         // Generate and save temporary image
-        await generateImage(fileName, positions, landingArray, kills, deaths);
+        await generateImage(fileName, matchSummary, telemetry);
 
         // Upload image
         try {
             console.log('Uploading image...');
             await bucket.upload(fileName, {
                 gzip: true,
+                resumable: false,
                 metadata: {
                     cacheControl: 'public, max-age=31536000',
                 },
