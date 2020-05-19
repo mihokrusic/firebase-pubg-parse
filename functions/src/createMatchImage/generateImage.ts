@@ -24,13 +24,13 @@ const getMapCoords = (x: number, y: number) => {
 };
 
 const drawTitle = (ctx: any, summary: MatchSummary) => {
-    ctx.strokeStyle = 'black';
-    ctx.font = '60px Impact';
-    ctx.lineWidth = 2;
-    ctx.strokeText('WINNER WINNER CHICKEN DINNER!', 30, 80);
-    ctx.fillStyle = 'white';
-    ctx.font = '60px Impact';
-    ctx.fillText('WINNER WINNER CHICKEN DINNER!', 30, 80);
+    // ctx.strokeStyle = 'black';
+    // ctx.font = '60px Impact';
+    // ctx.lineWidth = 2;
+    // ctx.strokeText('WINNER WINNER CHICKEN DINNER!', 30, 80);
+    // ctx.fillStyle = 'white';
+    // ctx.font = '60px Impact';
+    // ctx.fillText('WINNER WINNER CHICKEN DINNER!', 30, 80);
 };
 
 const drawPaths = (ctx: any, positions: any) => {
