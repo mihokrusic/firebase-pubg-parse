@@ -76,16 +76,6 @@ const sendMessage = (matchSummary: MatchSummary) => {
 module.exports = functions.pubsub.topic(topicName).onPublish(async (message, context) => {
     console.log('\n* Send message to Discord function called.', new Date().toISOString());
 
-    // Connect to Discord
-    try {
-        await connect();
-        console.log('* Successfully connected to Discord.');
-    } catch (e) {
-        console.error('* Error connecting to Discord bot.');
-        console.error(e);
-        return false;
-    }
-
     // Connect to Mongo
     try {
         const configMongoUrl = functions.config().mongo.connection_string;
@@ -95,6 +85,16 @@ module.exports = functions.pubsub.topic(topicName).onPublish(async (message, con
         console.error('* Error connecting to MongoDb.');
         console.error(e);
         return;
+    }
+
+    // Connect to Discord
+    try {
+        await connect();
+        console.log('* Successfully connected to Discord.');
+    } catch (e) {
+        console.error('* Error connecting to Discord bot.');
+        console.error(e);
+        return false;
     }
 
     const messagePayload = message.json as MatchSummaryTopic;

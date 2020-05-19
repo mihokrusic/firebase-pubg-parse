@@ -39,20 +39,24 @@ const drawPaths = (ctx: any, positions: any) => {
     let lastMapX = 0;
     let lastMapY = 0;
 
-    positions.forEach((position: any, i: number) => {
-        const { mapX, mapY } = getMapCoords(position.character.location.x, position.character.location.y);
+    for (const key of Object.keys(positions)) {
+        for (let i = 0; i < positions[key].length; i++) {
+            const position = positions[key][i];
 
-        if (i > 0) {
-            ctx.beginPath();
-            ctx.lineWidth = 2;
-            ctx.moveTo(lastMapX, lastMapY);
-            ctx.lineTo(mapX, mapY);
-            ctx.stroke();
+            const { mapX, mapY } = getMapCoords(position.x, position.y);
+
+            if (i > 0) {
+                ctx.beginPath();
+                ctx.lineWidth = 2;
+                ctx.moveTo(lastMapX, lastMapY);
+                ctx.lineTo(mapX, mapY);
+                ctx.stroke();
+            }
+
+            lastMapX = mapX;
+            lastMapY = mapY;
         }
-
-        lastMapX = mapX;
-        lastMapY = mapY;
-    });
+    }
 };
 
 const drawLandings = (ctx: any, landings: any) => {

@@ -83,7 +83,7 @@ module.exports = functions
             if (channel.sendToDiscord || overrideDiscordFlag) {
                 matchesToReport.forEach(async (match) => {
                     await topic.publishJSON({ channelId: match.channelId, id: match.id });
-                    await matchesToReportTopic.publishJSON(match);
+                    await matchesToReportTopic.publishJSON({ channelId: match.channelId, id: match.id });
                 });
             }
 
