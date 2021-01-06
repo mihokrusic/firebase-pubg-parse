@@ -19,7 +19,7 @@
         "@google-cloud/pubsub": "^1.7.3",
         "@google-cloud/storage": "^4.7.0",
         "@types/mongoose": "^5.7.19",
-        "axios": "^0.19.2",
+        "axios": "^0.21.1",
         "canvas": "^2.6.1",
         "discord.js": "^11.6.4",
         "firebase-admin": "^8.10.0",
